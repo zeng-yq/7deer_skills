@@ -1,255 +1,314 @@
 ---
 name: x-demand-radar
 description: |
-  AI 需求雷达 - 自动抓取 X/Twitter 上蕴含未满足需求的「特征帖」，分析后直接推送飞书。
+  AI 热点雷达 - 在新 AI 工具/关键词爆火前发现它们，抢注域名、建站套利。
 
   触发条件：
-  - 用户说「跑需求雷达」、「启动需求监控」、「X 需求扫描」
-  - 每天 cron 自动触发（早上 9:00）
+  - 用户说「跑雷达」、「热点扫描」、「X 雷达」
+  - cron 每 12 小时自动触发（9:00, 21:00）
 
-  特征贴定义：
-  - 包含痛点关键词："I wish" / "someone should build" / "why no" / "missing" / "need an AI" / "million dollar idea"
-  - 带 AI 相关词："AI tool" / "AI app" / "AI website" / "AI product"
-  - min_faves:30，-filter:replies
-  - 时间：最近 30 天
+  核心目标：
+  在 AI 关键词/工具首次病毒传播 → 大众认知的 24-72h 窗口内发现，
+  抢注域名 + 建工具站 + 吃搜索流量红利。
 
-  使用 browser 工具抓取 X 高级搜索结果，配合 AI 总结，直接发送飞书。
+  典型案例：Nano Banana、Ghibli AI、OpenClaw、Hermes
 ---
 
-# X Demand Radar - AI 需求雷达
+# X AI 热点雷达
 
-## 工作流程
+## 核心指标
+
+**最终得分 = X 热度 × 项目新鲜度**
+
+- `raw_hot_score = likes × log(1 + likes_per_hour)`
+- 增速 = 点赞数 / (当前时间 - 发布时间) 小时
+- **项目新鲜度校验**：发现 GitHub 项目后，必须导航到仓库页面验证创建日期
+- `final_score = raw_hot_score × freshness_multiplier`
+  - 项目 < 7 天：× 1.0
+  - 项目 7-30 天：× 0.7
+  - 项目 30-90 天：× 0.3
+  - 项目 > 90 天：标记 ⚠️ 旧项目回锅，不参与排名
+
+**🔴 关键教训**：UI-TARS-desktop (bytedance) 29K 星但 repo 已存在数月，X 帖子虽然是新的但项目不新 → 套利空间归零。热度高 ≠ 项目新。
+
+## 搜索矩阵（4 层探测器）
+
+每层目标不同，覆盖新品发布 → 病毒传播 → 开源爆发 → FOMO 需求全链路。
+
+### L1: 新品发射（24h 窗口）
+捕捉"刚刚发布/开源"的 AI 工具，最早信号。
 
 ```
-[Cron: 每天 9:00 AM]
-       ↓
-[构造 4 组搜索词矩阵]
-       ↓
-[browser: 逐组打开 X 高级搜索]
-       ↓
-[JavaScript: 边滚动边收集所有已加载帖子]
-       ↓
-[合并去重 → 过滤 → Top 15 排序]
-       ↓
-[AI: 逐条分析 - 输出需求标题+痛点+MVP方案+评分]
-       ↓
-[message: 直接发送飞书]
+("just launched" OR "just dropped" OR "just shipped" OR "new AI tool" OR "just released" OR "introducing" OR "launching today") (AI OR LLM OR GPT OR agent OR open source) min_faves:30 since:SINCE_24H
 ```
 
-## Step 1: 构造多组搜索词矩阵
+### L2: 病毒传播（48h 窗口）
+捕捉正在被疯转的 AI 产品。
 
-**必须跑满 3 组不同的搜索词组合**，覆盖不同表达方式，避免遗漏：
+```
+("this is insane" OR "game changer" OR "holy shit" OR "mind blown" OR "this is crazy" OR "cannot believe" OR "blown away") (AI OR LLM OR GPT OR agent OR tool) min_faves:100 since:SINCE_48H
+```
+
+### L3: GitHub 星标暴增（48h 窗口）
+开源 AI 项目突然爆火。
+
+```
+("github.com" OR "open source") (AI OR LLM OR GPT OR agent) ("stars" OR "trending" OR "blew up" OR "blowing up" OR "just hit") min_faves:100 since:SINCE_48H
+```
+
+### L4: FOMO / Waitlist（72h 窗口）
+等不及、求邀请、排长队 = 需求溢出信号。
+
+```
+("waitlist" OR "beta access" OR "invite" OR "early access" OR "can't wait" OR "need this") (AI OR LLM OR tool OR app) min_faves:50 since:SINCE_72H
+```
+
+## 执行流程
+
+```
+[Cron: 每12小时]
+       ↓
+[浏览器注入 X Cookie → 已登录状态]
+       ↓
+[L1-L4 逐层搜索 → JS 滚动收集]
+       ↓
+[合并去重 → 计算 raw_hot_score]
+       ↓
+[🔍 Step 2.5: 项目新鲜度校验]
+       ↓
+[AI 提取：关键词 + 产品名 + 项目年龄 + 一句话总结]
+       ↓
+[Top 10 排序 → 生成报告]
+       ↓
+[直接发送飞书]
+```
+
+## Step 1: 构造搜索 URL
 
 ```javascript
-const SINCE_DATE = new Date();
-SINCE_DATE.setDate(SINCE_DATE.getDate() - 30);
-const SINCE_STR = SINCE_DATE.toISOString().split('T')[0];
+const now = new Date();
+const since24h = new Date(now - 24*60*60*1000).toISOString().split('T')[0];
+const since48h = new Date(now - 48*60*60*1000).toISOString().split('T')[0];
+const since72h = new Date(now - 72*60*60*1000).toISOString().split('T')[0];
 
-// 搜索词矩阵 — 至少跑 3 组
 const SEARCH_GROUPS = [
   {
-    label: '组1: someone should build',
-    q: '(AI tool OR AI app OR AI website OR AI product) ("someone should build" OR "should build a") min_faves:30 -filter:replies'
+    layer: 'L1-新品发射',
+    q: `("just launched" OR "just dropped" OR "just shipped" OR "new AI tool" OR "just released" OR "introducing") (AI OR LLM OR GPT OR agent OR "open source") min_faves:30 since:${since24h}`,
+    since: since24h
   },
   {
-    label: '组2: I wish / missing',
-    q: '(AI tool OR AI app OR AI website OR AI product) ("I wish" OR "I\'m missing" OR "missing a") min_faves:30 -filter:replies'
+    layer: 'L2-病毒传播',
+    q: `("this is insane" OR "game changer" OR "holy shit" OR "mind blown" OR "this is crazy" OR "cannot believe" OR "blown away") (AI OR LLM OR GPT OR agent OR tool) min_faves:100 since:${since48h}`,
+    since: since48h
   },
   {
-    label: '组3: why no / need an AI',
-    q: '(AI tool OR AI app OR AI website OR AI product) ("why no one built" OR "need an AI" OR "million dollar idea") min_faves:30 -filter:replies'
+    layer: 'L3-GitHub爆发',
+    q: `("github.com" OR "open source") (AI OR LLM OR GPT OR agent) ("stars" OR "trending" OR "blew up" OR "blowing up" OR "just hit") min_faves:100 since:${since48h}`,
+    since: since48h
   },
   {
-    label: '组4: if only there was',
-    q: '(AI tool OR AI app OR AI website OR AI product) ("if only there was" OR "wish there was" OR "there should be an") min_faves:30 -filter:replies'
+    layer: 'L4-FOMO',
+    q: `("waitlist" OR "beta access" OR "invite" OR "early access" OR "can't wait" OR "need this") (AI OR LLM OR tool OR app) min_faves:50 since:${since72h}`,
+    since: since72h
   }
 ];
-
-// 每组构造 URL
-const url = `https://x.com/search?q=${encodeURIComponent(group.q + ' since:' + SINCE_STR)}&src=typed_query&f=live`;
 ```
 
-**执行规则**：每组单独抓取、去重、合并后统一排序，最多取 Top 15。
-
-## Step 2: 抓取页面 + JS 滚动收集
-
-⚠️ **关键：X 搜索只渲染约9条帖子，滚动时是替换不是追加。需要用 JavaScript 边滚动边收集。**
+## Step 2: 抓取 + 计算热力值
 
 ```javascript
-// 在 browser evaluate 中运行
-async function collectAllPosts() {
+// 在 browser console 中运行
+async function collectAndScore(sinceHours) {
   let allPosts = [];
   let prevCount = 0;
-  let scrolls = 0;  // ✅ 修复：声明在函数作用域内
-  const maxScrolls = 10;
+  let scrolls = 0;
+  const maxScrolls = 12;
 
   while (scrolls < maxScrolls) {
-    // 提取当前页面的所有帖子
-    const articles = document.querySelectorAll('article[aria-labelledby]');
+    const articles = document.querySelectorAll('article');
     articles.forEach((a) => {
-      const textEl = a.querySelector('[lang]');
+      const textEl = a.querySelector('[data-testid="tweetText"]') || a.querySelector('[lang]');
       const text = textEl?.innerText || '';
       if (!text || text.length < 30) return;
 
       const likesEl = a.querySelector('[data-testid="like"] span');
-      const likes = likesEl
-        ? parseInt(likesEl.innerText.replace(/[,K]/g, '').replace('K', '000')) || 0
-        : 0;
+      let likes = 0;
+      if (likesEl) {
+        const txt = likesEl.innerText.replace(/,/g, '');
+        if (txt.includes('K')) likes = Math.round(parseFloat(txt.replace('K','')) * 1000);
+        else if (txt.includes('M')) likes = Math.round(parseFloat(txt.replace('M','')) * 1000000);
+        else likes = parseInt(txt) || 0;
+      }
 
-      const authorEl = a.querySelector('[data-testid="User-Name"] span a');
-      const author = authorEl?.href?.split('/').pop() || '';
+      // 提取作者
+      const allLinks = Array.from(a.querySelectorAll('a[role="link"]'));
+      const authorLink = allLinks.find(l => l.href && l.href.includes('x.com/') && !l.href.includes('/status/') && !l.href.includes('search') && !l.href.includes('hashtag'));
+      const author = authorLink?.href?.split('/').pop() || '';
 
+      // 提取时间
       const timeEl = a.querySelector('time');
       const time = timeEl?.getAttribute('datetime') || '';
 
-      const link = authorEl?.href || '';
+      // 提取链接
+      const statusLink = allLinks.find(l => l.href && l.href.includes('/status/'));
+      const link = statusLink?.href || '';
 
-      // 去重
+      // 提取转发数
+      const repostEl = a.querySelector('[data-testid="retweet"] span, [data-testid="repost"] span');
+      let reposts = 0;
+      if (repostEl) {
+        const txt = repostEl.innerText.replace(/,/g, '');
+        if (txt.includes('K')) reposts = Math.round(parseFloat(txt.replace('K','')) * 1000);
+        else reposts = parseInt(txt) || 0;
+      }
+
       if (!allPosts.some(p => p.text === text)) {
-        allPosts.push({ text, likes, author, time, link });
+        allPosts.push({ text: text.substring(0, 400), likes, reposts, author, time, link });
       }
     });
 
-    if (allPosts.length === prevCount && scrolls > 2) break; // 连续两次没新内容则停止
+    if (allPosts.length === prevCount && scrolls > 2) break;
     prevCount = allPosts.length;
 
     window.scrollBy(0, 600);
-    await new Promise(r => setTimeout(r, 1800));  // ✅ 加长等待时间确保渲染
+    await new Promise(r => setTimeout(r, 1500));
     scrolls++;
   }
 
-  return allPosts.sort((a, b) => b.likes - a.likes);
+  // 计算热力值
+  const now = new Date();
+  return allPosts.map(p => {
+    const postTime = new Date(p.time);
+    const hoursAgo = Math.max(0.1, (now - postTime) / (1000 * 60 * 60));
+    const likesPerHour = p.likes / hoursAgo;
+    const hotScore = Math.round(p.likes * Math.log(1 + likesPerHour));
+    return { ...p, hoursAgo: Math.round(hoursAgo * 10) / 10, likesPerHour: Math.round(likesPerHour), hotScore };
+  }).sort((a, b) => b.hotScore - a.hotScore);
 }
 ```
 
-**执行规则**：每组搜索词单独跑一次 `collectAllPosts()`，结束后合并去重（以 text 字段去重），统一按点赞数排序后取 Top 15。
+## Step 2.5: 项目新鲜度校验（🔴 必须执行）
 
-## Step 3: 合并 + 过滤规则
+⚠️ **X 热度 ≠ 项目新**。旧项目被重新提起可能在 X 上很热，但套利窗口已关闭。
+
+对每个包含 GitHub 链接的信号，**必须** navigate 到仓库页面验证创建日期：
 
 ```javascript
+// 在 GitHub 仓库页面运行
+const createdEl = document.querySelector('relative-time');
+const createdAt = createdEl?.getAttribute('datetime') || '';
+const daysSinceCreated = (new Date() - new Date(createdAt)) / (1000 * 60 * 60 * 24);
+
+let freshnessLabel;
+if (daysSinceCreated < 7) freshnessLabel = '🆕 新品';
+else if (daysSinceCreated < 30) freshnessLabel = '📈 上升';
+else if (daysSinceCreated < 90) freshnessLabel = '⚠️ 旧项目回锅';
+else freshnessLabel = '💀 古董（排除）';
+
+const freshnessMultiplier = daysSinceCreated < 7 ? 1.0 : daysSinceCreated < 30 ? 0.7 : daysSinceCreated < 90 ? 0.3 : 0;
+const finalScore = Math.round(rawHotScore * freshnessMultiplier);
+```
+
+**过滤规则**：`freshnessMultiplier === 0` 的项目直接排除，不出现在报告中。
+
+对于非 GitHub 项目（如新产品发布、API、Waitlist），默认 freshnessMultiplier = 0.8（给非开源项目一定宽容度），但如果能从页面提取发布日期则优先使用实际日期。
+
+## Step 3: 过滤规则
+
+```javascript
+// 排除明显不是 AI 工具的
 const excludePatterns = [
-  'already exists', 'already built', 'try it at',
-  'check this out', 'here is the tool', 'i built this',
-  'we built', 'launched:', 'show hn', 'github.com',
-  'product hunt', 'beta.access'
+  /crypto|bitcoin|nft|token.*sale/i,
+  /war|killed|attack|bomb/i,
+  /nsfw|onlyfans|porn/i,
+  /ai.*girlfriend|ai.*waifu/i,
+  /meme.*coin/i
 ];
 
 const filtered = allPosts
-  .filter(p => p.likes >= 30)
-  .filter(p => p.text.length >= 80)
-  .filter(p => !excludePatterns.some(w => p.text.toLowerCase().includes(w)))
-  .slice(0, 10); // Top 10
+  .filter(p => p.hotScore >= 200)  // 热力值阈值
+  .filter(p => !excludePatterns.some(r => r.test(p.text)))
+  .slice(0, 15);
 ```
 
-## Step 4: AI 分析 Prompt
+## Step 4: AI 提取关键词
+
+对每条帖子运行 prompt：
 
 ```
-你是 AI 需求雷达分析师。从以下 X 帖子中提取：
-- **需求标题**：一句话概括要做什么（英文，≤10词）
-- **痛点描述**：为什么这个需求没被满足？供给低的原因？（1-2句）
-- **MVP 想法**：独立开发者 7 天能完成的最小方案（1-2句）
-- **优先级评分**：1-10（基于点赞数+需求普遍性+实现难度）
-- **验证建议**：下一步如何验证这个需求？（1句）
+从以下 X 帖子提取 AI 热点关键词：
 
-发推者：@{{ author }}
-正文：{{ text }}
-点赞：{{ likes }}
+帖子：{{ text }}
+发布者：@{{ author }}
+点赞：{{ likes }} | 转发：{{ reposts }}
+发布：{{ hoursAgo }}小时前 | 增速：{{ likesPerHour }}赞/小时
 
-输出格式（MD）：
-## [需求标题]
-**痛点**：{{ 痛点描述 }}
-**MVP**：{{ MVP 方案 }}
-**评分**：{{ }}/10
-**验证**：{{ 下一步 }}
----
+输出：
+- **关键词/产品名**：[提取 1-3 个核心关键词]
+- **一句话**：[这个工具/项目做什么]
+- **热度评分**：[hotScore]
+- **套利信号**：强/中/弱（增速>500赞/h = 强，100-500 = 中，<100 = 弱）
 ```
 
-## Step 5: 发送结果
-
-### Telegram 推送格式
-
-```
-🔍 AI Demand Radar | {{ DATE }}
-
-{{ AI_SUMMARY_RESULTS }}
-
----
-📊 扫描参数
-关键词：AI tool/app/website/product + 痛点词
-时间范围：{{ SINCE }} - {{ UNTIL }}
-原始帖子：{{ COUNT }} 条
-精选：{{ TOP_COUNT }} 条
-推送时间：{{ NOW }}
-```
-
-### Notion 创建卡片
-
-Database 字段：
-- **Name**: 需求标题
-- **Pain Point**: 痛点描述
-- **MVP Idea**: MVP 方案
-- **Score**: 评分
-- **Source**: @作者 | 原始链接
-- **Status**: Backlog
-
-## Step 5（最后）: 直接发送飞书
-
-⚠️ **必须在本 skill 执行完毕后立即用 `message` 工具发送飞书**，不要依赖 cron 的 announce 模式间接投递。
-
-```javascript
-// 分析完成后，立即发送飞书
-await message({
-  action: 'send',
-  channel: 'feishu',
-  target: 'user:open_id',  // 收件人的 open_id
-  message: `🔍 AI Demand Radar | ${DATE}\n\n${AI_RESULTS}\n\n---\n📊 扫描参数\n搜索词组：${SEARCH_GROUPS.length} 组\n时间范围：${SINCE_STR} - ${UNTIL_STR}\n原始帖子：${TOTAL_COUNT} 条\n精选：${TOP_COUNT} 条\n推送时间：${NOW}`
-});
-```
-
-**禁止**：在 skill 执行流程中出现「依赖 cron 发送」的情况。每次执行完毕后必须立刻通过 `message` 工具推送结果。
-
-## Cron 配置
-
-```javascript
-{
-  "name": "X Demand Radar 每日扫描",
-  "schedule": { "kind": "cron", "expr": "0 9 * * *", "tz": "Asia/Shanghai" },
-  "sessionTarget": "isolated",
-  "payload": {
-    "kind": "agentTurn",
-    "message": "使用 x-demand-radar skill 执行每日需求扫描：\n\n1. 构造 4 组搜索词（见 SKILL.md Step 1）\n2. 对每组搜索词分别用 browser 打开 X 高级搜索并用 JS 滚动收集（见 SKILL.md Step 2）\n3. 合并去重后过滤：点赞≥30、排除已有解决方案、字数>80（见 SKILL.md Step 3）\n4. Top 15 按热度排序\n5. 对每条帖子调用 AI 分析（见 SKILL.md Step 4）\n6. 【关键】执行完毕后立即用 message 工具发飞书，不要等 cron announce\n7. 如果配置了 Notion，也在 Notion 数据库创建卡片",
-    "timeoutSeconds": 600
-  },
-  "delivery": {
-    "mode": "none"  // ✅ 改为 none，避免重复推送；真正的推送在 skill 内部用 message 直接发
-  }
-}
-```
-
-## 配置变量 (TOOLS.md)
-
-在 workspace 的 TOOLS.md 中维护：
+## Step 5: 输出报告格式
 
 ```markdown
-### X Demand Radar
-- X_SEARCH_KEYWORD: (AI tool OR AI app OR AI website OR AI product) (I wish OR "someone should build" OR "why no" OR missing OR "need an AI" OR "million dollar idea")
-- X_SEARCH_SINCE_DAYS: 30
-- MIN_FAVES: 30
-- TELEGRAM_CHAT_ID: <your-chat-id>
-- NOTION_DATABASE_ID: <your-database-id>
-- NOTION_API_KEY: <your-api-key>
+🔍 AI 热点雷达 | {{DATE}} {{TIME}}
+
+## 🔥 Top 10 热力榜
+
+| # | 关键词 | 赞 | 增速(赞/h) | 热力值 | 套利信号 |
+|---|--------|-----|-----------|--------|---------|
+| 1 | xxx | 5.2K | 1,200 | 36,000 | 🔴 强 |
+
+### 🚀 立即行动（套利信号 = 强）
+1. **{{keyword}}** — {{summary}}
+   - @{{author}} | {{likes}}赞 | {{likesPerHour}}赞/小时 | {{hoursAgo}}h前
+   - 域名：{{domain}}.com（{{status}}）
+   - 建议：{{action}}
+
+---
+
+📊 扫描参数
+- 搜索层：L1 新品 / L2 病毒 / L3 GitHub / L4 FOMO
+- 时间范围：{{since}} - {{until}}
+- 原始帖子：{{raw}} 条 → 精选 {{top}} 条
+- 浏览器状态：已登录 @claw0x
 ```
 
-## 已知限制
+## Step 6: 发送
 
-1. **Browser 抓取限制**：X 未登录用户只能看到约9条结果，需要多次滚动 — 已通过 JS 滚动收集解决
-2. **懒加载**：X 搜索结果无限滚动，每次滚动加载新批次 — 已通过 `prevCount` 检测连续无新内容则提前停止
-3. **时间衰减**：越旧的帖子越难被抓取，建议30天刷新周期
-4. **付费推广过滤**：部分帖子是付费推广（如 @PetClaw_ai），需人工过滤
+⚠️ **必须用 `send_message` 发飞书**，不依赖 cron announce。
 
-## 升级方案（可选）
+## Cookie 注入（每次执行前）
 
-如需稳定抓取更多结果，建议使用：
-- **Apify X Scraper** ($0.35/1000条) - 支持完整分页
-- **n8n 定时触发** - 自动化工作流
-- OpenClaw 只负责 AI 分析 + 推送
+⚠️ **详见 `references/x-auth-and-collection.md`** — 包含完整注入流程、async IIFE 模板、K/M 解析、hotScore 公式。
+
+```javascript
+// 先导航到 x.com 再注入，然后验证 x.com/home 登录成功
+document.cookie = "auth_token=06dec19f563932f39d96f93e9d8c005d3de9b7a9; domain=.x.com; path=/; secure; SameSite=None";
+```
+
+## 配置
+
+- **X 账户**: @claw0x（已登录浏览器）
+- **执行频率**: 每 12 小时（9:00 + 21:00 CST）
+- **Cookie 有效期**: 需用户定期更新 auth_token
+- **输出目标**: `daily-reports/YYYY-MM-DD/x-demand-radar.md` + `public/data/demand-radar.json`
+- **部署**: git push → CF Pages 自动构建
+
+## Pitfalls
+
+1. **Cookie 不跨会话持久化**：每次 Hermes 启动都是新浏览器实例，cookie 必须重新注入。Cron 每次执行的第一步就是注入 cookie → 验证登录。
+2. **`browser_console` 不能直接 `return`**：必须用 IIFE `(async function() { ... })()` 包裹，否则报 `Illegal return statement`。详见 `references/x-auth-and-collection.md`。
+3. **搜索稀疏性属于正常现象**：min_faves≥100 + 复杂布尔查询组合下，每层 4-16 条结果属于正常。L3（GitHub）尤其稀疏。不要降低 min_faves 阈值否则噪声淹没信号。
+4. **Today's News 侧边栏是免费信号源**：每次搜索页面右侧显示当日新闻话题和帖数，这些是确定性热点，应纳入报告。
+5. **推送必须直接发飞书**：不要依赖 cron announce。结果写入文件后立即用 message 发送。
+6. **搜索词全球通用**：所有查询用英文，不限定地区。报告聚焦全球 AI 热点。
+
+## 补充信号源（可选）
+
+- GitHub Trending: https://github.com/trending?since=daily
+- Product Hunt: https://www.producthunt.com/
+- Hacker News: https://news.ycombinator.com/
