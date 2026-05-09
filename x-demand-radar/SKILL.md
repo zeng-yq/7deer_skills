@@ -31,15 +31,31 @@ description: |
 
 **🔴 关键教训**：UI-TARS-desktop (bytedance) 29K 星但 repo 已存在数月，X 帖子虽然是新的但项目不新 → 套利空间归零。热度高 ≠ 项目新。
 
-## 搜索矩阵（4 层探测器）
+## 搜索矩阵（6 层探测器）
 
-每层目标不同，覆盖新品发布 → 病毒传播 → 开源爆发 → FOMO 需求全链路。
+每层目标不同，覆盖野生热点 → 新品发布 → 病毒传播 → 开源爆发 → FOMO 需求全链路。
 
-### L1: 新品发射（24h 窗口）
+### L0: 野生病毒（48h 窗口）🆕
+捕捉不带 AI 标签但疯狂传播的产品/游戏/工具。**这是捕捉 H5 游戏、网页工具等非 AI 热点的关键层。**
+
+```
+("this is insane" OR "game changer" OR "holy shit" OR "mind blown" OR "this is crazy" OR "cannot believe" OR "blown away") (game OR tool OR app OR website OR "web app" OR builder OR generator OR platform OR "waitlist") min_faves:200 since:SINCE_48H
+```
+
+⚠️ 注意：L0 不要求 AI 关键词，min_faves 提升到 200 以过滤噪声。
+
+### L1: 新品发射-AI（24h 窗口）
 捕捉"刚刚发布/开源"的 AI 工具，最早信号。
 
 ```
 ("just launched" OR "just dropped" OR "just shipped" OR "new AI tool" OR "just released" OR "introducing" OR "launching today") (AI OR LLM OR GPT OR agent OR open source) min_faves:30 since:SINCE_24H
+```
+
+### L1-b: 泛新品发射（24h 窗口）🆕
+捕捉非 AI 的新发布产品/游戏/工具。
+
+```
+("just launched" OR "just dropped" OR "just shipped" OR "just released" OR "introducing" OR "launching today" OR "new" OR "announcing") (game OR tool OR app OR website OR "web app" OR builder OR platform) min_faves:100 since:SINCE_24H
 ```
 
 ### L2: 病毒传播（48h 窗口）
@@ -70,7 +86,7 @@ description: |
        ↓
 [浏览器注入 X Cookie → 已登录状态]
        ↓
-[L1-L4 逐层搜索 → JS 滚动收集]
+[L0-L4 逐层搜索 → JS 滚动收集]
        ↓
 [合并去重 → 计算 raw_hot_score]
        ↓
@@ -93,8 +109,18 @@ const since72h = new Date(now - 72*60*60*1000).toISOString().split('T')[0];
 
 const SEARCH_GROUPS = [
   {
-    layer: 'L1-新品发射',
+    layer: 'L0-野生病毒',
+    q: `("this is insane" OR "game changer" OR "holy shit" OR "mind blown" OR "this is crazy" OR "cannot believe" OR "blown away") (game OR tool OR app OR website OR "web app" OR builder OR generator OR platform OR "waitlist") min_faves:200 since:${since48h}`,
+    since: since48h
+  },
+  {
+    layer: 'L1-新品发射-AI',
     q: `("just launched" OR "just dropped" OR "just shipped" OR "new AI tool" OR "just released" OR "introducing") (AI OR LLM OR GPT OR agent OR "open source") min_faves:30 since:${since24h}`,
+    since: since24h
+  },
+  {
+    layer: 'L1-b-泛新品',
+    q: `("just launched" OR "just dropped" OR "just shipped" OR "just released" OR "introducing" OR "launching today" OR "new" OR "announcing") (game OR tool OR app OR website OR "web app" OR builder OR platform) min_faves:100 since:${since24h}`,
     since: since24h
   },
   {
@@ -192,6 +218,8 @@ async function collectAndScore(sinceHours) {
 
 ⚠️ **X 热度 ≠ 项目新**。旧项目被重新提起可能在 X 上很热，但套利窗口已关闭。
 
+**先查已知旧项目清单**：`references/known-stale-repos.md` — 匹配到的直接排除，无需导航 GitHub。
+
 对每个包含 GitHub 链接的信号，**必须** navigate 到仓库页面验证创建日期：
 
 ```javascript
@@ -217,7 +245,7 @@ const finalScore = Math.round(rawHotScore * freshnessMultiplier);
 ## Step 3: 过滤规则
 
 ```javascript
-// 排除明显不是 AI 工具的
+// 排除话题：crypto、战争、NSFW、meme coin
 const excludePatterns = [
   /crypto|bitcoin|nft|token.*sale/i,
   /war|killed|attack|bomb/i,
@@ -237,7 +265,7 @@ const filtered = allPosts
 对每条帖子运行 prompt：
 
 ```
-从以下 X 帖子提取 AI 热点关键词：
+从以下 X 帖子提取热点关键词（不限 AI）：
 
 帖子：{{ text }}
 发布者：@{{ author }}
@@ -256,28 +284,55 @@ const filtered = allPosts
 ```markdown
 🔍 AI 热点雷达 | {{DATE}} {{TIME}}
 
+> **数据来源：X/Twitter 实时抓取 @claw0x**
+
+## 📰 Today's News 侧边栏
+
+| 话题 | 时间 | 帖数 |
+|------|------|------|
+| {{topic}} | {{age}} | {{posts}} |
+
 ## 🔥 Top 10 热力榜
 
-| # | 关键词 | 赞 | 增速(赞/h) | 热力值 | 套利信号 |
-|---|--------|-----|-----------|--------|---------|
-| 1 | xxx | 5.2K | 1,200 | 36,000 | 🔴 强 |
+| # | 关键词 | 赞 | 增速(赞/h) | 热力值 | 新鲜度 | 最终得分 | 套利信号 |
+|---|--------|-----|-----------|--------|--------|---------|---------|
+| 1 | xxx | 5.2K | 1,200 | 36,000 | 🆕 0.8天 | 36,000 | 🔴 强 |
 
-### 🚀 立即行动（套利信号 = 强）
+### 🚀 立即行动（套利信号 ≥ 中）
 1. **{{keyword}}** — {{summary}}
    - @{{author}} | {{likes}}赞 | {{likesPerHour}}赞/小时 | {{hoursAgo}}h前
+   - GitHub: `{{owner/repo}}` | 创建 {{daysAgo}} 天前 | {{stars}} stars
    - 域名：{{domain}}.com（{{status}}）
-   - 建议：{{action}}
+   - 套利方向：{{arbitrageDirection}}
+
+## ⚠️ 已排除（旧项目回锅）
+
+| 项目 | 原因 | 星标 | 年龄 |
+|------|------|------|------|
+| UI-TARS-desktop (ByteDance) | 桌面自动化 agent，X 重新被提起 | 30.9K | >12个月 |
 
 ---
 
 📊 扫描参数
-- 搜索层：L1 新品 / L2 病毒 / L3 GitHub / L4 FOMO
+- 搜索层：L0 野生 / L1 新品-AI / L1-b 泛新品 / L2 病毒 / L3 GitHub / L4 FOMO
 - 时间范围：{{since}} - {{until}}
-- 原始帖子：{{raw}} 条 → 精选 {{top}} 条
+- 原始帖子：{{raw}} 条 → 去重 {{deduped}} → 过滤 {{filtered}} → 精选 {{top}} 条
+- GitHub 校验：排除 {{excluded}} 个旧项目
 - 浏览器状态：已登录 @claw0x
+
+## 🔮 关键洞察
+
+（列出 2-4 个本日扫描发现的关键趋势）
 ```
 
-## Step 6: 发送
+## Step 6: 部署（git push → CF Pages）
+
+```bash
+cd /Volumes/sunzi/Code/ludusAI
+git add daily-reports/YYYY-MM-DD/x-demand-radar.md public/data/demand-radar.json
+git commit -m "radar: YYYY-MM-DD HH:MM CST - <top signal summary>"
+git pull --rebase && git push  # ⚠️ 必须 rebase，防止 non-fast-forward 拒绝
+```
 
 ⚠️ **必须用 `send_message` 发飞书**，不依赖 cron announce。
 
@@ -305,7 +360,10 @@ document.cookie = "auth_token=06dec19f563932f39d96f93e9d8c005d3de9b7a9; domain=.
 3. **搜索稀疏性属于正常现象**：min_faves≥100 + 复杂布尔查询组合下，每层 4-16 条结果属于正常。L3（GitHub）尤其稀疏。不要降低 min_faves 阈值否则噪声淹没信号。
 4. **Today's News 侧边栏是免费信号源**：每次搜索页面右侧显示当日新闻话题和帖数，这些是确定性热点，应纳入报告。
 5. **推送必须直接发飞书**：不要依赖 cron announce。结果写入文件后立即用 message 发送。
-6. **搜索词全球通用**：所有查询用英文，不限定地区。报告聚焦全球 AI 热点。
+6. **搜索词全球通用**：所有查询用英文，不限定地区。报告聚焦全球热点（不限 AI）。
+7. **`execute_code` 不支持大段内联 JSON**：将 JSON 数据直接嵌入 Python 字符串会导致 `SyntaxError: leading zeros` 等解析错误。正确做法是先用 `write_file` 写入临时文件，再用 `open()` 读取：`with open('/tmp/data.json') as f: data = json.load(f)`。同样，`read_file` 返回带行号前缀的文本（如 `     1|{...}`），不能直接 `json.loads()`，需用原生 `open()`。
+8. **git push 可能被拒绝（non-fast-forward）**：远程仓库可能有其他 cron 实例或手动提交先于当前 push。始终执行 `git pull --rebase && git push`，不要单独 `git push`。
+9. **JS 收集截断的帖子文本可能丢失 GitHub URL**：`text.substring(0, 300)` 可能截掉末尾的 GitHub 链接。如果帖子中提到 GitHub 但未提取到 `github.com` 链接，需导航到原帖 (`browser_navigate` 到 `link` 字段) 提取完整 URL，或用 GitHub 搜索 `repo name` 关键词查找。
 
 ## 补充信号源（可选）
 
