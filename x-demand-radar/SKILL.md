@@ -329,7 +329,21 @@ const filtered = allPosts
 
 ```bash
 cd /Volumes/sunzi/Code/ludusAI
-git add daily-reports/YYYY-MM-DD/x-demand-radar.md public/data/demand-radar.json
+# Save per-date JSON snapshot for /radar detail pages
+cp public/data/demand-radar.json "public/data/radar/YYYY-MM-DD.json" 2>/dev/null || true
+# Build manifest
+ls public/data/radar/*.json | python3 -c "
+import json,os,sys
+m=[]
+for f in sys.stdin.read().strip().split():
+  d=json.load(open(f))
+  t=d.get('top10',[])
+  m.append({'date':os.path.basename(f).replace('.json',''),'topKeywords':[x.get('keyword','') for x in t[:3]],'signalCount':len(t),'newsTopics':[n.get('topic','') for n in d.get('news',[])[:2]],'insights':d.get('insights',[])[:3],'strongSignal':sum(1 for x in t if '强' in x.get('signal','')),'mediumSignal':sum(1 for x in t if '中' in x.get('signal','')),'raw':d.get('scanParams',{}).get('raw',0),'top':d.get('scanParams',{}).get('top',0),'excluded':d.get('scanParams',{}).get('githubExcluded',0),'layers':d.get('scanParams',{}).get('layers',[])})
+m.sort(key=lambda x:x['date'],reverse=True)
+json.dump(m,open('public/data/radar-manifest.json','w'),ensure_ascii=False,indent=2)
+print(f'manifest: {len(m)} reports')
+"
+git add daily-reports/YYYY-MM-DD/x-demand-radar.md public/data/demand-radar.json public/data/radar/YYYY-MM-DD.json public/data/radar-manifest.json
 git commit -m "radar: YYYY-MM-DD HH:MM CST - <top signal summary>"
 git pull --rebase && git push  # ⚠️ 必须 rebase，防止 non-fast-forward 拒绝
 ```
@@ -364,6 +378,7 @@ document.cookie = "auth_token=06dec19f563932f39d96f93e9d8c005d3de9b7a9; domain=.
 7. **`execute_code` 不支持大段内联 JSON**：将 JSON 数据直接嵌入 Python 字符串会导致 `SyntaxError: leading zeros` 等解析错误。正确做法是先用 `write_file` 写入临时文件，再用 `open()` 读取：`with open('/tmp/data.json') as f: data = json.load(f)`。同样，`read_file` 返回带行号前缀的文本（如 `     1|{...}`），不能直接 `json.loads()`，需用原生 `open()`。
 8. **git push 可能被拒绝（non-fast-forward）**：远程仓库可能有其他 cron 实例或手动提交先于当前 push。始终执行 `git pull --rebase && git push`，不要单独 `git push`。
 9. **JS 收集截断的帖子文本可能丢失 GitHub URL**：`text.substring(0, 300)` 可能截掉末尾的 GitHub 链接。如果帖子中提到 GitHub 但未提取到 `github.com` 链接，需导航到原帖 (`browser_navigate` 到 `link` 字段) 提取完整 URL，或用 GitHub 搜索 `repo name` 关键词查找。
+10. **L0 层噪声较大（已验证）**：`min_faves:200` 挡不住大量「game changer」口语化帖子（政治/体育/生活类）。首次运行 L0 收集 19 条中仅有 4 条有潜在产品价值。**建议**：若连续两次雷达 L0 信号/噪声比 < 20%，将 `min_faves` 提升至 500，或在 L0 查询中加入 `-(political OR sports OR religion)` 排除词。
 
 ## 补充信号源（可选）
 
