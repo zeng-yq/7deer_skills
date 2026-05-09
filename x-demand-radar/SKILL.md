@@ -281,6 +281,34 @@ const filtered = allPosts
 
 ## Step 5: 输出报告格式
 
+### JSON 输出结构（demand-radar.json）
+
+每个信号必须包含以下全部字段：
+
+```json
+{
+  "date": "YYYY-MM-DD",
+  "signals": [{
+    "rank": 1,
+    "keyword": "产品/项目名",
+    "description": "一句话描述做什么",
+    "likes": 188, "velocity": 109, "hotScore": 884,
+    "freshness": "🆕 新品", "finalScore": 884, "signal": "🟡 中",
+    "author": "@handle",
+    "tweetLink": "https://x.com/user/status/xxx",
+    "hoursAgo": 1.7,
+    "github": "owner/repo", "stars": "2.8K",
+    "sourceLayer": "L1 新品发射-AI",
+    "arbitrageDirection": "套利方向说明 + 推荐域名",
+    "domainSuggestions": ["domain1.com", "domain2.com"],
+    "actionPlan": "具体行动方案：做什么、怎么做、为什么现在是时机",
+    "painPoint": "用户痛点：为什么有人需要这个"
+  }]
+}
+```
+
+🔴 **关键规则**：每个信号必须包含 tweetLink（原帖链接）、arbitrageDirection（套利方向）、domainSuggestions（域名建议）、actionPlan（行动方案）、painPoint（痛点）。缺少任一字段的信号视为不完整，不出现在报告中。
+
 ```markdown
 🔍 AI 热点雷达 | {{DATE}} {{TIME}}
 
