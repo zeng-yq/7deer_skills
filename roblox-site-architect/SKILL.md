@@ -351,7 +351,7 @@ skill_view(name='roblox-site-architect', file_path='references/{game-slug}-game-
 - 金属光泽效果：金色/银色调点缀（#f59e0b / #94a3b8）
 - 风格：简洁扁平化，辨识度强，缩到 16×16 仍可辨认
 
-Pickaxe Tycoon 参考实现：
+{Game Name} 参考实现：
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1098,7 +1098,7 @@ commit: xxx
    - Phase 2：YouTube 搜索 "site:youtube.com {游戏名} update 2026" → 找4-5个真实视频 → 逐个点进描述里挖游戏机制数据
    - **没看到真实游戏数据（pickaxe列表/video views/升级路径），不准开始建站**
    - 真实数据示例（AlphaShoe/74views视频）：Coal→Stone→Crystal→Crystal II 升级路径，1500个pickaxe后出Crystal
-   - 真实数据示例（Bax/318万订阅）："I Took Pickaxe Tycoon TOO FAR" → 揭露 Tier 10 系统
+   - 真实数据示例（Bax/318万订阅）："I Took {Game Name} TOO FAR" → 揭露 Tier 10 系统
 
 0b. **🚫 不要跳过 Header/Footer/动态路由等核心组件**
    本 skill 最高频失误第二名：把 block-tales-site 当"参考资料"而不是"施工标准"，导致建出来的站缺导航、缺 Footer、缺动态详情页、缺数据管道。
@@ -1406,7 +1406,7 @@ export default function CalculatorPage() {
 | `references/keyword-to-page-pipeline.md` | 关键词挖掘 7 步管道 |
 | `references/{game-name}-game-data.md` | 游戏数据示例（codes、更新时间线） |
 | `references/codes-hub-template.md` | Codes 页面模板 |
-| `references/pickaxe-tycoon-game-data.md` | Pickaxe Tycoon session data (YouTube creators, pickaxe list, tier system, codes status) |
+| `references/pickaxe-tycoon-game-data.md` | {Game Name} session data (YouTube creators, pickaxe list, tier system, codes status) |
 | `references/pickaxe-tycoon-retrospective.md` | 建站复盘文档（2026-05-27）：过程回顾、Bug清单、经验总结、方法复盘，下次建站前必读 |
 
 ⚠️ `resources/` 目录是**真实存在的**，不要无视它。Step 4.1 应该从这里复制模板文件，而不是自己从零写。

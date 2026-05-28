@@ -1,12 +1,12 @@
 # Block Tales Keyword-to-Page Pipeline
 
-Originally from `block-tales-keyword-to-page` skill. Consolidated into `roblox-site-architect` umbrella.
+Originally from `{game-name}-keyword-to-page` skill. Consolidated into `roblox-site-architect` umbrella.
 
 Uses **Data Architecture Mode B** (multi-file JSON + accessor layer), unlike the Mode A single-file approach.
 
 ## Project Specifics
 - Game: Block Tales (Spaceman Moonbase, Demo 5)
-- Repo: `kennyzir/block-tales-site`
+- Repo: `kennyzir/{repo-name}`
 - Local path: `/Users/zirer/Projects/{repo-name}`
 
 ## Data Architecture (Mode B)

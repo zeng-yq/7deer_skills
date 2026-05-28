@@ -1,4 +1,4 @@
-# Pickaxe Tycoon — Game Data Reference
+# {Game Name} — Game Data Reference
 
 Game domain: `{site-a}.gg`
 Repository: `/Users/zirer/Projects/{repo-name}`
@@ -12,7 +12,7 @@ Developer: Popular Marketplace
 
 | Creator | Subs | Role |
 |---------|------|------|
-| Bax | 3.18M | Major coverage — "I Took Pickaxe Tycoon TOO FAR" (38,997 views in 3 days) |
+| Bax | 3.18M | Major coverage — "I Took {Game Name} TOO FAR" (38,997 views in 3 days) |
 | AlphaShoe | 185 | Early game mechanics — "I Bought 1,500 PICKAXES"揭露升级路径 |
 | RBXPLAYZ07 | small | Tier progression series — "Reaching Pickaxe Tier 10" |
 | Darklord | 16.4K | Codes coverage |
@@ -28,7 +28,7 @@ Coal Pickaxe → Stone Pickaxe → Crystal Pickaxe → Crystal Pickaxe II
 ```
 
 AlphaShoe got **2 Crystal Pickaxes** after buying 1,500 total pickaxes.
-Video title: "I Bought 1,500 PICKAXES in Roblox Pickaxe Tycoon!"
+Video title: "I Bought 1,500 PICKAXES in Roblox {Game Name}!"
 
 ---
 
@@ -64,11 +64,11 @@ Letter grades (S/A/B/C/D) are a content presentation layer — the game uses num
 
 | Keyword | Views | Opportunity |
 |---------|-------|-------------|
-| Pickaxe Tycoon script auto collect | 6,854 | Script/exploit流量，高竞争 |
-| "I Took Pickaxe Tycoon TOO FAR" | 38,997 (3 days) | Bax 3.18M subscriber video |
-| Pickaxe Tycoon merge | 0 results | **高机会低竞争** |
-| Pickaxe Tycoon Tier 10 | confirmed demand | 无好结果 |
-| Pickaxe Tycoon codes | active search | Codes页核心词 |
+| {Game Name} script auto collect | 6,854 | Script/exploit流量，高竞争 |
+| "I Took {Game Name} TOO FAR" | 38,997 (3 days) | Bax 3.18M subscriber video |
+| {Game Name} merge | 0 results | **高机会低竞争** |
+| {Game Name} Tier 10 | confirmed demand | 无好结果 |
+| {Game Name} codes | active search | Codes页核心词 |
 
 ---
 
@@ -82,6 +82,6 @@ No Beebom/PCGamesN coverage yet.
 
 ## Deployment
 
-Repository: `git@github.com:kennyzir/pickaxe-tycoon-gg.git`
-Cloudflare: `pickaxe-tycoon-gg` Pages project
-Deploy: `wrangler pages deploy out --project-name=pickaxe-tycoon-gg`
+Repository: `git@github.com:kennyzir/{site-a}.git`
+Cloudflare: `{site-a}` Pages project
+Deploy: `wrangler pages deploy out --project-name={site-a}`

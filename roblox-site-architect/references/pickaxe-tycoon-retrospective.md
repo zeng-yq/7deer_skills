@@ -1,8 +1,8 @@
 # Pickaxe Tycoon 建站复盘（2026-05-27）
 
 **游戏**: Pickaxe Tycoon
-**站点**: pickaxe-tycoon-gg.pages.dev → {site-a}.gg
-**仓库**: github.com/kennyzir/pickaxe-tycoon-gg
+**站点**: {site-a}.pages.dev → {site-a}.gg
+**仓库**: github.com/kennyzir/{repo-name}
 **本地路径**: /Users/zirer/Projects/{repo-name}
 
 ---
@@ -110,7 +110,7 @@ eefce9f feat: add real game assets — hero bg, og:image, favicon
 | # | 问题 | 严重度 | 根因 | 教训 |
 |---|------|--------|------|------|
 | 1 | **矿锭名称编造假数据**（Emerald 等） | 🔴 高 | 跳过 Phase 1+2 直接建站 | HARD STOP 第零步必须先读游戏数据文件 |
-| 2 | **Header + Footer 缺失** | 🔴 高 | 没对照 block-tales-site 架构清单 | HARD STOP 组件核对表是强制执行的 |
+| 2 | **Header + Footer 缺失** | 🔴 高 | 没对照 {site-b} 架构清单 | HARD STOP 组件核对表是强制执行的 |
 | 3 | **内链不成网** | 🟡 中 | 建站时没按"内链成网"原则执行 | 每个页面必须显式链接到其他相关页面 |
 | 4 | **Favicon 缓存不更新** | 🟢 低 | CF Pages + 浏览器二级缓存 | SVG favicon 上线后需要用户强制刷新 |
 | 5 | **og-default.svg vs .jpg 混淆** | 🟢 低 | 规范里只写了 svg，但实际需要 jpg（Twitter 不支持 svg） | OG 分享图必须是 .jpg，Twitter card 不支持 SVG |
@@ -137,7 +137,7 @@ eefce9f feat: add real game assets — hero bg, og:image, favicon
 
 2. **HARD STOP 第零步被跳过** — 规范白纸黑字写了"没输出验证清单不准进入 Step 4.1"，但实际上没有输出清单就开工了
 
-3. **block-tales-site 架构清单未核对** — Header/Footer 漏掉就是因为没有逐项对照清单
+3. **{site-b} 架构清单未核对** — Header/Footer 漏掉就是因为没有逐项对照清单
 
 ### 🔧 流程改进
 
@@ -149,7 +149,7 @@ eefce9f feat: add real game assets — hero bg, og:image, favicon
 3. 写游戏数据文件（references/{game}-game-data.md）
 4. 输出 [RSA 预检] 清单（不输出不继续）
 5. Phase 3: 站点规划（选 calculator 类型）
-6. Phase 4: 建站（严格对照 block-tales-site 架构清单）
+6. Phase 4: 建站（严格对照 {site-b} 架构清单）
    - 建完 Header + Footer → 先 git commit 验证
    - 再建 calculator → 再 commit
    - ...
@@ -160,7 +160,7 @@ eefce9f feat: add real game assets — hero bg, og:image, favicon
 
 ---
 
-## pickaxe-tycoon-gg 现状（2026-05-27）
+## {site-a} 现状（2026-05-27）
 
 **内容缺口**（仍需填充）：
 
@@ -171,7 +171,7 @@ eefce9f feat: add real game assets — hero bg, og:image, favicon
 | `pickaxe tycoon money making` | — | 🔴 缺口 |
 | `pickaxe tycoon alpha shoe` | — | 🔴 缺口 |
 
-**Cron job**：`pickaxe-tycoon 每日关键词挖掘`（job_id: 待查，每天 11:00 触发）
+**Cron job**：`{game-name} 每日关键词挖掘`（job_id: 待查，每天 11:00 触发）
 
 ---
 
@@ -185,8 +185,8 @@ eefce9f feat: add real game assets — hero bg, og:image, favicon
    - OG 分享图规范（1200×630 PIL 生成脚本）
    - 预检清单模板
 
-2. **`pickaxe-tycoon-gg-keyword-to-page`** — 坑 #9 改为引用 `roblox-site-architect` 视觉素材规范，避免两处规范不一致
+2. **`{game-name}-keyword-to-page`** — 坑 #9 改为引用 `roblox-site-architect` 视觉素材规范，避免两处规范不一致
 
 ---
 
-*本文档由 pickaxe-tycoon 建站复盘生成，写入 `.archive/roblox-site-architect/references/pickaxe-tycoon-retrospective.md`，供后续新站点建站前查阅。*
+*本文档由 {game-name} 建站复盘生成，写入 `.archive/roblox-site-architect/references/{game-name}-retrospective.md`，供后续新站点建站前查阅。*

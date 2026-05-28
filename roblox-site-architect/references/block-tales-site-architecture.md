@@ -7,7 +7,7 @@
 ## 目录结构
 
 ```
-pickaxe-tycoon-gg/ 或 block-tales-site/
+{site-a}/ 或 {site-b}/
 ├── src/
 │   ├── app/
 │   │   ├── layout.tsx              ← 根布局（必须）
