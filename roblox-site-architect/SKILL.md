@@ -26,8 +26,8 @@ Skill 写了流程 → 直接走 → 遇到障碍再报告。
 新站点：`/Users/zirer/Projects/{domain-name}/`
 
 ### ⚠️ 两个已验证的同名 skill 禁止混淆
-- **`research/roblox-keyword-to-page`** — bealuckyblock.gg 每日运营管道（41页）
-- **`research/block-tales-site`** — block-tales.com 每日运营管道
+- **`research/roblox-keyword-to-page`** — {site-a}.gg 每日运营管道（41页）
+- **`research/block-tales-site`** — {site-b}.com 每日运营管道
 
 本 skill（`roblox-site-architect`）用于**从零新建站点**，不是运营已有站点。
 
@@ -816,7 +816,7 @@ curl -s -o /dev/null -w "%{http_code}" "https://<deployment-url>/nonexistent-pag
 
 ## 概述：自动关键词→页面→部署管道
 
-这是从 **bealuckyblock.gg** 和 **block-tales.com** 两个站点验证过的每日运营逻辑。
+这是从 **{site-a}.gg** 和 **{site-b}.com** 两个站点验证过的每日运营逻辑。
 
 ```
 每天定时触发：
@@ -830,8 +830,8 @@ curl -s -o /dev/null -w "%{http_code}" "https://<deployment-url>/nonexistent-pag
 ```
 
 **已验证的工作流（直接复用）**：
-- `research/roblox-keyword-to-page` — bealuckyblock.gg 每日管道
-- `research/block-tales-site` — block-tales.com 每日管道
+- `research/roblox-keyword-to-page` — {site-a}.gg 每日管道
+- `research/block-tales-site` — {site-b}.com 每日管道
 
 ---
 
@@ -841,8 +841,8 @@ curl -s -o /dev/null -w "%{http_code}" "https://<deployment-url>/nonexistent-pag
 
 | 游戏站 | Skill |
 |--------|-------|
-| bealuckyblock.gg | `research/roblox-keyword-to-page` |
-| block-tales.com | `research/block-tales-site` |
+| {site-a}.gg | `research/roblox-keyword-to-page` |
+| {site-b}.com | `research/block-tales-site` |
 | **新站点** | 需要创建新的每日运营 skill（见 Step B-2） |
 
 ### Step B-2: 为新站点创建每日运营 skill
@@ -1404,7 +1404,7 @@ export default function CalculatorPage() {
 |------|------|
 | `references/block-tales-site-architecture.md` | 模板站完整架构对照清单（layout/Header/Footer/data/lib/sitemap/[slug]） |
 | `references/keyword-to-page-pipeline.md` | 关键词挖掘 7 步管道 |
-| `references/be-lucky-block-game-data.md` | 游戏数据示例（codes、更新时间线） |
+| `references/{game-name}-game-data.md` | 游戏数据示例（codes、更新时间线） |
 | `references/codes-hub-template.md` | Codes 页面模板 |
 | `references/pickaxe-tycoon-game-data.md` | Pickaxe Tycoon session data (YouTube creators, pickaxe list, tier system, codes status) |
 | `references/pickaxe-tycoon-retrospective.md` | 建站复盘文档（2026-05-27）：过程回顾、Bug清单、经验总结、方法复盘，下次建站前必读 |
@@ -1415,5 +1415,5 @@ export default function CalculatorPage() {
 
 | Skill | 适用站点 |
 |-------|---------|
-| `research/roblox-keyword-to-page` | bealuckyblock.gg（41页，每日运营中）|
-| `research/block-tales-site` | block-tales.com（每日运营中）|
+| `research/roblox-keyword-to-page` | {site-a}.gg（41页，每日运营中）|
+| `research/block-tales-site` | {site-b}.com（每日运营中）|
